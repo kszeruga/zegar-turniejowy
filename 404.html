@@ -1,17 +1,10 @@
 <!doctype html>
 <html lang="pl">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><title>Zegar Turniejowy</title><link rel="stylesheet" href="/zegar-turniejowy/styles.css"></head>
-<body>
-<main class="shell">
-<section id="display" class="display">
-<h1 id="eventTitle">Zegar Turniejowy</h1>
-<div id="timer" class="timer">--:--</div>
-<p id="timerStatus" class="timer-status">Ładowanie zegara…</p>
-<p id="message" class="message" hidden></p>
-<p id="connection" class="connection">Łączenie z serwerem…</p>
-</section>
-<section id="home" class="panel" hidden></section>
-</main>
-<script>window.__ZEGAR_TIMER_ID__=location.pathname.replace(/\\/+$/,"").split("/").pop();</script>
-<script type="module" src="/zegar-turniejowy/app.js"></script>
-</body></html>
+<body><main class="shell display-shell">
+<section id="display" class="display"><h1 id="eventTitle">Zegar Turniejowy</h1>
+<section id="timerRegion" class="timer-region" aria-live="off"><div id="timer" class="timer">--:--</div><p id="timerStatus" class="timer-status">Ładowanie zegara…</p></section>
+<section id="messageRegion" class="message-region" hidden><p id="message" class="message"></p></section>
+<footer id="displayFooter" class="display-footer" hidden><img id="footerLogo" class="footer-graphic" alt="Logo organizatorów"></footer>
+<p id="connection" class="connection" role="status">Łączenie z serwerem…</p></section><section id="home" class="panel" hidden></section></main>
+<script type="module" src="/zegar-turniejowy/app.js"></script></body></html>
