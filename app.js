@@ -12,7 +12,7 @@ if (timerId) {
   const footer=$("displayFooter"), footerLogo=$("footerLogo");
   let state=null;
   onValue(ref(db,".info/connected"),s=>{connection.textContent=s.val()===true?"Połączono":"Brak połączenia — oczekiwanie na synchronizację";},()=>{connection.textContent="Nie można połączyć się z Firebase";});
-  onValue(ref(db,"timerInstances/"+timerId),snap=>{
+  onValue(ref(db,"timerDisplays/"+timerId),snap=>{
     const item=snap.val();
     if(!item){title.textContent="Nie znaleziono zegara";timer.textContent="--:--";timerStatus.textContent="Sprawdź adres lub poproś operatora o nowy link.";messageRegion.hidden=true;footer.hidden=true;state=null;return;}
     state=item.state||{};
