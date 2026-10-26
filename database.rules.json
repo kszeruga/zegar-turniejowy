@@ -17,17 +17,37 @@
       }
     },
     "timerInstances": {
-      ".read": true,
+      ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'operator' || root.child('users').child(auth.uid).child('role').val() === 'admin')",
       "$timerId": {
         ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'operator' && root.child('users').child(auth.uid).child('status').val() === 'approved' && (data.exists() ? data.child('ownerUid').val() === auth.uid : newData.child('ownerUid').val() === auth.uid)))",
-        ".validate": "newData.hasChildren(['ownerUid', 'name', 'state'])",
-        "ownerUid": { ".validate": "newData.isString() && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (newData.val() === auth.uid && (!data.exists() || data.val() === newData.val())))" },
+        ".validate": "newData.hasChildren(['ownerUid', 'name'])",
+        "ownerUid": {
+          ".validate": "newData.isString() && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (newData.val() === auth.uid && (!data.exists() || data.val() === newData.val())))"
+        },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "createdAt": { ".validate": "newData.isNumber()" }
+      }
+    },
+    "timerDisplays": {
+      ".read": true,
+      "$timerId": {
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'operator' && root.child('users').child(auth.uid).child('status').val() === 'approved' && root.child('timerInstances').child($timerId).child('ownerUid').val() === auth.uid))",
+        ".validate": "newData.hasChildren(['name', 'state'])",
         "name": { ".validate": "newData.isString() && newData.val().length <= 100" },
         "state": {
-          ".validate": "newData.hasChildren(['durationMs','remainingMs','running'])",
+          ".validate": "newData.hasChildren(['durationMs', 'remainingMs', 'running'])",
           "durationMs": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400000" },
           "remainingMs": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400000" },
-          "running": { ".validate": "newData.isBoolean()" }
+          "running": { ".validate": "newData.isBoolean()" },
+          "title": { ".validate": "newData.isString() && newData.val().length <= 200" },
+          "message": { ".validate": "newData.isString() && newData.val().length <= 500" },
+          "titleScale": { ".validate": "newData.isNumber() && newData.val() >= 25 && newData.val() <= 300" },
+          "messageScale": { ".validate": "newData.isNumber() && newData.val() >= 25 && newData.val() <= 300" },
+          "messageVisible": { ".validate": "newData.isBoolean()" },
+          "timerVisible": { ".validate": "newData.isBoolean()" },
+          "endsAt": { ".validate": "newData.isNumber() || newData.val() === null" },
+          "updatedAt": { ".validate": "newData.isNumber()" },
+          "footerLogo": { ".validate": "newData.isString() && newData.val().length <= 3000000" }
         }
       }
     }
