@@ -341,7 +341,9 @@ function formatDuration(milliseconds) {
   return String(Math.floor(total / 60)).padStart(2, "0") + ":" + String(total % 60).padStart(2, "0");
 }
 function randomId() {
-  return Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 4);
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
