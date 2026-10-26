@@ -1,1 +1,17 @@
-<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Zegar Turniejowy</title><link rel="stylesheet" href="/zegar-turniejowy/styles.css"></head><body><main class="shell"><p>Ładowanie zegara…</p></main><script>window.__ZEGAR_TIMER_ID__=location.pathname.replace(/\\/+$/,"").split("/").pop();</script><script type="module" src="/zegar-turniejowy/app.js"></script></body></html>
+<!doctype html>
+<html lang="pl">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#ffffff"><title>Zegar Turniejowy</title><link rel="stylesheet" href="/zegar-turniejowy/styles.css"></head>
+<body>
+<main class="shell">
+<section id="display" class="display">
+<h1 id="eventTitle">Zegar Turniejowy</h1>
+<div id="timer" class="timer">--:--</div>
+<p id="timerStatus" class="timer-status">Ładowanie zegara…</p>
+<p id="message" class="message" hidden></p>
+<p id="connection" class="connection">Łączenie z serwerem…</p>
+</section>
+<section id="home" class="panel" hidden></section>
+</main>
+<script>window.__ZEGAR_TIMER_ID__=location.pathname.replace(/\\/+$/,"").split("/").pop();</script>
+<script type="module" src="/zegar-turniejowy/app.js"></script>
+</body></html>
