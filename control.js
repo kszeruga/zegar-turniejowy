@@ -1,4 +1,4 @@
-import { auth, db, ref, get, set, update, remove, onValue, serverNow } from "./firebase.js";
+import { auth, db, ref, set, update, remove, onValue, serverNow } from "./firebase.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const $ = id => document.getElementById(id);
@@ -8,6 +8,7 @@ let instances = {};
 let displays = {};
 let stopInstances = null;
 let stopDisplays = null;
+let stopProfile = null;
 
 function say(id, message, isError = false) {
   const element = $(id);
@@ -46,7 +47,7 @@ $("registerButton").addEventListener("click", async () => {
 $("logoutButton").addEventListener("click", () => signOut(auth));
 $("pendingLogout").addEventListener("click", () => signOut(auth));
 
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   currentUser = user;
   profile = null;
   $("authPanel").hidden = !!user;
@@ -54,35 +55,49 @@ onAuthStateChanged(auth, async user => {
   $("operatorPanel").hidden = true;
   if (stopInstances) stopInstances();
   if (stopDisplays) stopDisplays();
+  if (stopProfile) stopProfile();
   stopInstances = null;
   stopDisplays = null;
+  stopProfile = null;
+  instances = {};
+  displays = {};
   if (!user) return;
 
-  try {
-    const snapshot = await get(ref(db, "users/" + user.uid));
+  stopProfile = onValue(ref(db, "users/" + user.uid), snapshot => {
     profile = snapshot.val();
-    if (profile?.status !== "approved" || !["operator", "admin"].includes(profile?.role)) {
-      $("pendingPanel").hidden = false;
+    const approved = profile?.status === "approved" && ["operator", "admin"].includes(profile?.role);
+    $("pendingPanel").hidden = approved;
+    $("operatorPanel").hidden = !approved;
+    if (!approved) {
+      if (stopInstances) stopInstances();
+      if (stopDisplays) stopDisplays();
+      stopInstances = null;
+      stopDisplays = null;
       if (profile?.status === "rejected") {
         say("pendingStatus", "Prośba została odrzucona. Skontaktuj się z administratorem.", true);
+      } else {
+        say("pendingStatus", "Konto oczekuje na zatwierdzenie przez administratora.");
       }
       return;
     }
 
-    $("operatorPanel").hidden = false;
     $("accountInfo").textContent = "Zalogowano: " + (user.email || user.uid) + " · rola: " + profile.role;
     $("listHeading").textContent = profile.role === "admin" ? "Wszystkie zegary" : "Twoje zegary";
-    stopInstances = onValue(ref(db, "timerInstances"), snapshot => {
-      instances = snapshot.val() || {};
-      renderTimerList();
-    }, error => say("createStatus", "Nie udało się odczytać zegarów: " + error.message, true));
-    stopDisplays = onValue(ref(db, "timerDisplays"), snapshot => {
-      displays = snapshot.val() || {};
-      renderTimerList();
-    }, error => say("createStatus", "Nie udało się odczytać ekranów timerów: " + error.message, true));
-  } catch (error) {
+    if (!stopInstances) {
+      stopInstances = onValue(ref(db, "timerInstances"), snap => {
+        instances = snap.val() || {};
+        renderTimerList();
+      }, error => say("createStatus", "Nie udało się odczytać zegarów: " + error.message, true));
+    }
+    if (!stopDisplays) {
+      stopDisplays = onValue(ref(db, "timerDisplays"), snap => {
+        displays = snap.val() || {};
+        renderTimerList();
+      }, error => say("createStatus", "Nie udało się odczytać ekranów timerów: " + error.message, true));
+    }
+  }, error => {
     say("authStatus", "Nie udało się sprawdzić uprawnień: " + error.message, true);
-  }
+  });
 });
 
 $("createForm").addEventListener("submit", async event => {
