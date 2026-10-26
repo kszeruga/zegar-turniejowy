@@ -126,8 +126,14 @@ $("createForm").addEventListener("submit", async event => {
 function renderTimerList() {
   const host = $("timerList");
   host.replaceChildren();
-  const entries = Object.entries(instances)
-    .filter(([, instance]) => profile?.role === "admin" || instance.ownerUid === currentUser?.uid)
+  const allowedEntries = Object.entries(instances)
+    .filter(([, instance]) => profile?.role === "admin" || instance.ownerUid === currentUser?.uid);
+  if (allowedEntries.length && !allowedEntries.some(([id]) => !!displays[id])) {
+    host.textContent = "Ładowanie zegarów…";
+    return;
+  }
+  const entries = allowedEntries
+    .filter(([id]) => !!displays[id])
     .sort((a, b) => String(a[1].name || "").localeCompare(String(b[1].name || ""), "pl"));
 
   if (!entries.length) {
