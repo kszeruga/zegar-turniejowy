@@ -137,7 +137,7 @@ function renderTimerList() {
 
   for (const [id, instance] of entries) {
     const state = displays[id]?.state || {};
-    const displayName = displays[id]?.name || displayName;
+    const displayName = displays[id]?.name || instance.name || id;
     const panel = document.createElement("article");
     panel.className = "panel";
 
