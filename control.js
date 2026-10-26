@@ -1,11 +1,13 @@
-import { auth, db, ref, get, set, update, onValue, serverNow } from "./firebase.js";
+import { auth, db, ref, get, set, update, remove, onValue, serverNow } from "./firebase.js";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const $ = id => document.getElementById(id);
 let currentUser = null;
 let profile = null;
 let instances = {};
+let displays = {};
 let stopInstances = null;
+let stopDisplays = null;
 
 function say(id, message, isError = false) {
   const element = $(id);
@@ -51,7 +53,9 @@ onAuthStateChanged(auth, async user => {
   $("pendingPanel").hidden = true;
   $("operatorPanel").hidden = true;
   if (stopInstances) stopInstances();
+  if (stopDisplays) stopDisplays();
   stopInstances = null;
+  stopDisplays = null;
   if (!user) return;
 
   try {
@@ -72,6 +76,10 @@ onAuthStateChanged(auth, async user => {
       instances = snapshot.val() || {};
       renderTimerList();
     }, error => say("createStatus", "Nie udało się odczytać zegarów: " + error.message, true));
+    stopDisplays = onValue(ref(db, "timerDisplays"), snapshot => {
+      displays = snapshot.val() || {};
+      renderTimerList();
+    }, error => say("createStatus", "Nie udało się odczytać ekranów timerów: " + error.message, true));
   } catch (error) {
     say("authStatus", "Nie udało się sprawdzić uprawnień: " + error.message, true);
   }
@@ -97,15 +105,20 @@ $("createForm").addEventListener("submit", async event => {
     title: name, titleScale: 100, message: "", messageScale: 100,
     messageVisible: false, timerVisible: true, updatedAt: Date.now()
   };
+  let metadataCreated = false;
   try {
     await set(ref(db, "timerInstances/" + id), {
       ownerUid: currentUser.uid,
       name,
-      createdAt: Date.now(),
-      state
+      createdAt: Date.now()
     });
+    metadataCreated = true;
+    await set(ref(db, "timerDisplays/" + id), { name, state });
     say("createStatus", "Utworzono zegar: " + new URL("./" + id + "/", location.href).href);
   } catch (error) {
+    if (metadataCreated) {
+      try { await remove(ref(db, "timerInstances/" + id)); } catch (_) {}
+    }
     say("createStatus", "Nie udało się utworzyć zegara: " + error.message, true);
   }
 });
@@ -123,12 +136,13 @@ function renderTimerList() {
   }
 
   for (const [id, instance] of entries) {
-    const state = instance.state || {};
+    const state = displays[id]?.state || {};
+    const displayName = displays[id]?.name || displayName;
     const panel = document.createElement("article");
     panel.className = "panel";
 
     const heading = document.createElement("h3");
-    heading.textContent = instance.name || id;
+    heading.textContent = displayName;
     panel.append(heading);
 
     const link = document.createElement("a");
@@ -159,7 +173,7 @@ function renderTimerList() {
 
     const patch = async patchState => {
       try {
-        await update(ref(db, "timerInstances/" + id + "/state"), {
+        await update(ref(db, "timerDisplays/" + id + "/state"), {
           ...patchState,
           updatedAt: Date.now()
         });
