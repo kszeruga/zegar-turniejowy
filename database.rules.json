@@ -1,0 +1,34 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))",
+        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'",
+        ".validate": "newData.hasChildren(['role', 'status']) && (newData.child('role').val() === 'admin' || newData.child('role').val() === 'operator') && (newData.child('status').val() === 'approved' || newData.child('status').val() === 'pending' || newData.child('status').val() === 'rejected')"
+      }
+    },
+    "operatorRequests": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))",
+        ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.child('status').val() === 'pending') || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))"
+      }
+    },
+    "timerInstances": {
+      "$timerId": {
+        ".read": true,
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'operator' && root.child('users').child(auth.uid).child('status').val() === 'approved' && (data.exists() ? data.child('ownerUid').val() === auth.uid : newData.child('ownerUid').val() === auth.uid)))",
+        ".validate": "newData.hasChildren(['ownerUid', 'name', 'state'])",
+        "ownerUid": { ".validate": "newData.isString()" },
+        "name": { ".validate": "newData.isString() && newData.val().length <= 100" },
+        "state": {
+          ".validate": "newData.hasChildren(['durationMs','remainingMs','running'])",
+          "durationMs": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400000" },
+          "remainingMs": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400000" },
+          "running": { ".validate": "newData.isBoolean()" }
+        }
+      }
+    }
+  }
+}
