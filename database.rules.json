@@ -19,7 +19,7 @@
     "timerInstances": {
       ".read": "auth != null && root.child('users').child(auth.uid).child('status').val() === 'approved' && (root.child('users').child(auth.uid).child('role').val() === 'operator' || root.child('users').child(auth.uid).child('role').val() === 'admin')",
       "$timerId": {
-        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'operator' && root.child('users').child(auth.uid).child('status').val() === 'approved' && (data.exists() ? data.child('ownerUid').val() === auth.uid : newData.child('ownerUid').val() === auth.uid)))",
+        ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'operator' && root.child('users').child(auth.uid).child('status').val() === 'approved' && (data.exists() ? (data.child('ownerUid').val() === auth.uid && (newData.exists() || !root.child('timerDisplays').child($timerId).exists())) : newData.child('ownerUid').val() === auth.uid)))",
         ".validate": "newData.hasChildren(['ownerUid', 'name'])",
         "ownerUid": {
           ".validate": "newData.isString() && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (newData.val() === auth.uid && (!data.exists() || data.val() === newData.val())))"
