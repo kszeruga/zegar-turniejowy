@@ -10,17 +10,18 @@
       }
     },
     "operatorRequests": {
+      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'",
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))",
         ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.child('status').val() === 'pending') || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))"
       }
     },
     "timerInstances": {
+      ".read": true,
       "$timerId": {
-        ".read": true,
         ".write": "auth != null && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'operator' && root.child('users').child(auth.uid).child('status').val() === 'approved' && (data.exists() ? data.child('ownerUid').val() === auth.uid : newData.child('ownerUid').val() === auth.uid)))",
         ".validate": "newData.hasChildren(['ownerUid', 'name', 'state'])",
-        "ownerUid": { ".validate": "newData.isString()" },
+        "ownerUid": { ".validate": "newData.isString() && ((root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved') || (newData.val() === auth.uid && (!data.exists() || data.val() === newData.val())))" },
         "name": { ".validate": "newData.isString() && newData.val().length <= 100" },
         "state": {
           ".validate": "newData.hasChildren(['durationMs','remainingMs','running'])",
