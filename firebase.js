@@ -1,11 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-import { getDatabase, ref, get, set, update, push, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
+import { getDatabase, ref, get, set, update, push, remove, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-database.js";
 import { firebaseConfig } from "./firebase-config.js";
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app);
-export { ref, get, set, update, push, onValue, serverTimestamp };
+export { ref, get, set, update, push, remove, onValue, serverTimestamp };
 let offset = 0;
 onValue(ref(db, ".info/serverTimeOffset"), snap => { offset = Number(snap.val()) || 0; });
 export const serverNow = () => Date.now() + offset;
