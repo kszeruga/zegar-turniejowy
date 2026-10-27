@@ -83,6 +83,17 @@ onAuthStateChanged(auth, user => {
 
   stopProfile = onValue(ref(db, "users/" + user.uid), snapshot => {
     profile = snapshot.val();
+    if (profile?.role === "operator" && profile?.status === "pending" && creatingProfileFor !== user.uid) {
+      creatingProfileFor = user.uid;
+      update(ref(db, "users/" + user.uid), { status: "approved" })
+        .then(() => say("createStatus", "Konto operatora jest aktywne. Możesz utworzyć zegar."))
+        .catch(error => say("authStatus", "Nie udało się aktywować operatora. Sprawdź reguły Firebase: " + error.message, true))
+        .finally(() => { creatingProfileFor = null; });
+      $("pendingPanel").hidden = false;
+      $("operatorPanel").hidden = true;
+      say("pendingStatus", "Aktywuję konto operatora…");
+      return;
+    }
     if (profile === null && creatingProfileFor !== user.uid) {
       creatingProfileFor = user.uid;
       set(ref(db, "users/" + user.uid), {
