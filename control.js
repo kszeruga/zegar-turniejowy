@@ -9,6 +9,7 @@ let displays = {};
 let stopInstances = null;
 let stopDisplays = null;
 let stopProfile = null;
+let creatingProfileFor = null;
 
 function say(id, message, isError = false) {
   const element = $(id);
@@ -39,14 +40,8 @@ $("registerButton").addEventListener("click", async () => {
     return;
   }
   try {
-    const credential = await createUserWithEmailAndPassword(auth, email, $("password").value);
-    await set(ref(db, "users/" + credential.user.uid), {
-      role: "operator",
-      status: "approved",
-      email: credential.user.email || "",
-      createdAt: Date.now()
-    });
-    say("createStatus", "Konto utworzone. Operator jest aktywny i może od razu tworzyć zegary.");
+    await createUserWithEmailAndPassword(auth, email, $("password").value);
+    say("authStatus", "Konto utworzone. Aktywacja operatora nastąpi automatycznie.");
   } catch (error) {
     say("authStatus", "Nie udało się utworzyć konta: " + friendlyAuthError(error), true);
   }
@@ -88,6 +83,25 @@ onAuthStateChanged(auth, user => {
 
   stopProfile = onValue(ref(db, "users/" + user.uid), snapshot => {
     profile = snapshot.val();
+    if (profile === null && creatingProfileFor !== user.uid) {
+      creatingProfileFor = user.uid;
+      set(ref(db, "users/" + user.uid), {
+        role: "operator",
+        status: "approved",
+        email: user.email || "",
+        createdAt: Date.now()
+      }).then(() => {
+        say("createStatus", "Konto operatora jest aktywne. Możesz utworzyć zegar.");
+      }).catch(error => {
+        say("authStatus", "Nie udało się utworzyć profilu operatora. Sprawdź opublikowane reguły bazy: " + error.message, true);
+      }).finally(() => {
+        creatingProfileFor = null;
+      });
+      $("pendingPanel").hidden = false;
+      $("operatorPanel").hidden = true;
+      say("pendingStatus", "Aktywuję konto operatora…");
+      return;
+    }
     const approved = profile?.status === "approved" && ["operator", "admin"].includes(profile?.role);
     $("pendingPanel").hidden = approved;
     $("operatorPanel").hidden = !approved;
