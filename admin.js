@@ -1,9 +1,86 @@
-import {auth,db,ref,get,set,update,onValue} from "./firebase.js";
-import {signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-const $=id=>document.getElementById(id);let user=null,stops=[];
-function say(id,msg,error=false){$(id).textContent=msg;$(id).classList.toggle("error",error);}
-$("adminLoginForm").addEventListener("submit",async e=>{e.preventDefault();try{await signInWithEmailAndPassword(auth,$("email").value.trim(),$("password").value);}catch(x){say("loginStatus",x.message,true);}});
-$("logoutButton").addEventListener("click",()=>signOut(auth));
-onAuthStateChanged(auth,async u=>{user=u;$("adminLogin").hidden=!!u;$("adminPanel").hidden=true;stops.forEach(f=>f());stops=[];if(!u)return;const p=(await get(ref(db,"users/"+u.uid))).val();if(p?.role!=="admin"||p?.status!=="approved"){say("loginStatus","To konto nie ma uprawnień administratora.",true);await signOut(auth);return;}$("adminPanel").hidden=false;stops.push(onValue(ref(db,"operatorRequests"),s=>renderRequests(s.val()||{}),e=>say("adminStatus",e.message,true)));stops.push(onValue(ref(db,"timerInstances"),s=>renderTimers(s.val()||{}),e=>say("adminStatus",e.message,true)));});
-function renderRequests(data){const host=$("requests");host.replaceChildren();const items=Object.entries(data).filter(([,v])=>v.status==="pending");if(!items.length){host.textContent="Brak oczekujących próśb.";return;}for(const [uid,r] of items){const box=document.createElement("article");box.className="panel";const p=document.createElement("p");p.textContent=(r.email||"(brak e-maila)")+" · UID: "+uid;box.append(p);const approve=document.createElement("button");approve.className="primary";approve.textContent="Zatwierdź operatora";approve.onclick=async()=>{try{await set(ref(db,"users/"+uid),{role:"operator",status:"approved",email:r.email||""});await update(ref(db,"operatorRequests/"+uid),{status:"approved",reviewedAt:Date.now(),reviewedBy:user.uid});say("adminStatus","Zatwierdzono konto.");}catch(e){say("adminStatus","Błąd: "+e.message,true);}};const reject=document.createElement("button");reject.className="danger";reject.textContent="Odrzuć";reject.onclick=async()=>{try{await set(ref(db,"users/"+uid),{role:"operator",status:"rejected",email:r.email||""});await update(ref(db,"operatorRequests/"+uid),{status:"rejected",reviewedAt:Date.now(),reviewedBy:user.uid});say("adminStatus","Odrzucono prośbę.");}catch(e){say("adminStatus","Błąd: "+e.message,true);}};const row=document.createElement("div");row.className="row";row.append(approve,reject);box.append(row);host.append(box);}}
-function renderTimers(data){const host=$("timers");host.replaceChildren();const entries=Object.entries(data);if(!entries.length){host.textContent="Brak zegarów.";return;}for(const [id,item] of entries){const box=document.createElement("article");box.className="panel";const h=document.createElement("h3");h.textContent=item.name||id;box.append(h);const a=document.createElement("a");a.href="./"+id+"/";a.textContent=a.href;a.target="_blank";a.rel="noopener";box.append(a);const p=document.createElement("p");p.className="muted small";p.textContent="Właściciel UID: "+item.ownerUid;box.append(p);host.append(box);}}
+import { auth, db, ref, get, onValue } from "./firebase.js";
+import { signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+const $ = id => document.getElementById(id);
+let currentUser = null;
+let stopTimers = null;
+let stopDisplays = null;
+let timers = {};
+let displays = {};
+
+function say(id, message, isError = false) {
+  $(id).textContent = message;
+  $(id).classList.toggle("error", isError);
+}
+
+$("adminLoginForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  try {
+    await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
+  } catch (error) {
+    say("loginStatus", "Nie udało się zalogować. Sprawdź dane logowania.", true);
+  }
+});
+$("logoutButton").addEventListener("click", () => signOut(auth));
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  $("adminLogin").hidden = !!user;
+  $("adminPanel").hidden = true;
+  if (stopTimers) stopTimers();
+  if (stopDisplays) stopDisplays();
+  stopTimers = stopDisplays = null;
+  timers = {};
+  displays = {};
+  if (!user) return;
+
+  get(ref(db, "users/" + user.uid)).then(snapshot => {
+    const profile = snapshot.val();
+    if (profile?.role !== "admin" || profile?.status !== "approved") {
+      say("loginStatus", "To konto nie ma uprawnień administratora.", true);
+      signOut(auth);
+      return;
+    }
+    $("adminPanel").hidden = false;
+    stopTimers = onValue(ref(db, "timerInstances"), snap => {
+      timers = snap.val() || {};
+      renderTimers();
+    }, error => say("adminStatus", "Nie udało się odczytać zegarów: " + error.message, true));
+    stopDisplays = onValue(ref(db, "timerDisplays"), snap => {
+      displays = snap.val() || {};
+      renderTimers();
+    }, error => say("adminStatus", "Nie udało się odczytać danych ekranów: " + error.message, true));
+  }).catch(error => say("loginStatus", "Nie udało się sprawdzić uprawnień: " + error.message, true));
+});
+
+function renderTimers() {
+  const host = $("timers");
+  host.replaceChildren();
+  const entries = Object.entries(timers).filter(([id]) => displays[id]);
+  if (!entries.length) {
+    host.textContent = "Brak zegarów.";
+    return;
+  }
+  for (const [id, meta] of entries.sort((a,b) => String(a[1].name || "").localeCompare(String(b[1].name || ""), "pl"))) {
+    const display = displays[id] || {};
+    const panel = document.createElement("article");
+    panel.className = "panel";
+    const heading = document.createElement("h3");
+    heading.textContent = display.name || meta.name || id;
+    panel.append(heading);
+    const link = document.createElement("a");
+    link.href = "./" + id + "/";
+    link.textContent = new URL(link.href).href;
+    link.target = "_blank";
+    link.rel = "noopener";
+    panel.append(link);
+    const owner = document.createElement("p");
+    owner.className = "muted small";
+    owner.textContent = "Właściciel UID: " + meta.ownerUid;
+    panel.append(owner);
+    const control = document.createElement("p");
+    control.innerHTML = '<a href="./control.html">Steruj zegarem w panelu operatora</a>';
+    panel.append(control);
+    host.append(panel);
+  }
+}
