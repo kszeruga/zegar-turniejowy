@@ -17,3 +17,6 @@
 .checkbox-label input{width:1.15rem;flex:0 0 auto;accent-color:var(--accent)}
 .logo-preview{display:block;max-width:100%;max-height:100px;object-fit:contain;object-position:left}
 #displayFooter[hidden]{display:none!important}
+
+.google-button{width:100%;margin-top:.65rem;background:#fff;color:#202124;border:1px solid #dadce0}
+.google-button:hover{background:#f8faff}
