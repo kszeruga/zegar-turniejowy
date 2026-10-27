@@ -5,15 +5,8 @@
     "users": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))",
-        ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'",
+        ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.child('role').val() === 'operator' && newData.child('status').val() === 'approved') || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))",
         ".validate": "newData.hasChildren(['role', 'status']) && (newData.child('role').val() === 'admin' || newData.child('role').val() === 'operator') && (newData.child('status').val() === 'approved' || newData.child('status').val() === 'pending' || newData.child('status').val() === 'rejected')"
-      }
-    },
-    "operatorRequests": {
-      ".read": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'",
-      "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))",
-        ".write": "auth != null && ((auth.uid === $uid && !data.exists() && newData.child('status').val() === 'pending') || (root.child('users').child(auth.uid).child('role').val() === 'admin' && root.child('users').child(auth.uid).child('status').val() === 'approved'))"
       }
     },
     "timerInstances": {
