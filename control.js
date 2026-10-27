@@ -1,5 +1,5 @@
 import { auth, db, ref, set, update, remove, onValue, serverNow } from "./firebase.js";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const $ = id => document.getElementById(id);
 let currentUser = null;
@@ -29,18 +29,41 @@ $("authForm").addEventListener("submit", async event => {
 
 $("registerButton").addEventListener("click", async () => {
   say("authStatus", "");
+  const email = $("email").value.trim();
+  if (!email || !$("email").reportValidity()) {
+    say("authStatus", "Podaj prawidłowy adres e-mail.", true);
+    return;
+  }
+  if ($("password").value.length < 6) {
+    say("authStatus", "Ustaw hasło mające co najmniej 6 znaków.", true);
+    return;
+  }
   try {
-    const credential = await createUserWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
-    await set(ref(db, "operatorRequests/" + credential.user.uid), {
+    const credential = await createUserWithEmailAndPassword(auth, email, $("password").value);
+    await set(ref(db, "users/" + credential.user.uid), {
+      role: "operator",
+      status: "approved",
       email: credential.user.email || "",
-      status: "pending",
-      requestedAt: Date.now()
+      createdAt: Date.now()
     });
-    say("pendingStatus", "Prośba została wysłana. Oczekuj na zatwierdzenie przez administratora.");
+    say("createStatus", "Konto utworzone. Operator jest aktywny i może od razu tworzyć zegary.");
   } catch (error) {
-    const message = "Nie udało się wysłać prośby: " + friendlyAuthError(error);
-    say("authStatus", message, true);
-    say("pendingStatus", message, true);
+    say("authStatus", "Nie udało się utworzyć konta: " + friendlyAuthError(error), true);
+  }
+});
+
+$("resetPasswordButton").addEventListener("click", async () => {
+  const email = $("email").value.trim();
+  if (!email || !$("email").reportValidity()) {
+    say("authStatus", "Wpisz adres e-mail, na który mamy wysłać link resetujący.", true);
+    return;
+  }
+  try {
+    auth.languageCode = "pl";
+    await sendPasswordResetEmail(auth, email);
+    say("authStatus", "Jeśli konto z tym adresem istnieje, wysłaliśmy wiadomość z linkiem do zmiany hasła. Sprawdź też folder spam.");
+  } catch (error) {
+    say("authStatus", "Nie udało się wysłać wiadomości. Sprawdź konfigurację Firebase Authentication i spróbuj ponownie.", true);
   }
 });
 
