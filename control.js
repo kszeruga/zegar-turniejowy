@@ -1,5 +1,5 @@
 import { auth, db, ref, set, update, remove, onValue, serverNow } from "./firebase.js";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
 const $ = id => document.getElementById(id);
 let currentUser = null;
@@ -25,6 +25,24 @@ $("authForm").addEventListener("submit", async event => {
     await signInWithEmailAndPassword(auth, $("email").value.trim(), $("password").value);
   } catch (error) {
     say("authStatus", friendlyAuthError(error), true);
+  }
+});
+
+$("googleSignInButton").addEventListener("click", async () => {
+  say("authStatus", "");
+  try {
+    auth.languageCode = "pl";
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    const message = ({
+      "auth/unauthorized-domain": "Ta domena nie jest dozwolona w Firebase. Dodaj kszeruga.github.io w Authentication → Settings → Authorized domains.",
+      "auth/popup-blocked": "Przeglądarka zablokowała okno logowania. Zezwól na wyskakujące okna dla tej strony i spróbuj ponownie.",
+      "auth/popup-closed-by-user": "Logowanie anulowano — okno zostało zamknięte.",
+      "auth/account-exists-with-different-credential": "Konto z tym adresem e-mail już istnieje, ale używa innej metody logowania. Zaloguj się dotychczasową metodą."
+    })[error.code] || ("Logowanie przez Google nie powiodło się: " + error.message);
+    say("authStatus", message, true);
   }
 });
 
